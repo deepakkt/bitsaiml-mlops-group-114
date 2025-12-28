@@ -6,20 +6,28 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
-import sys
 from typing import Tuple
 
 import pandas as pd
 import requests
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
 
-from src.heart import data as data_utils
-from src.heart.config import settings
+
+def _load_project_modules():
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.append(str(PROJECT_ROOT))
+
+    from src.heart import data as data_utils
+    from src.heart.config import settings
+
+    return data_utils, settings
+
+
+data_utils, settings = _load_project_modules()
 
 UCI_DATASET_ID = 45
 FALLBACK_URL = "https://raw.githubusercontent.com/plotly/datasets/master/heart.csv"
