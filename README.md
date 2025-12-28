@@ -9,6 +9,12 @@ This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease 
 - Minikube + kubectl + Helm (required for k8s/monitoring steps)
 - GitHub Actions enabled for CI
 
+## Architecture Diagram
+![](architecture/Architecture.png "Architecture Diagram")
+
+## Video Overview
+(to be updated)
+
 ## Quickstart (local)
 ```bash
 # 1) Create/reuse the venv (respects existing .venv)
