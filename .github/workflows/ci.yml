@@ -2,10 +2,14 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - master
+      - "**"
   pull_request:
 
 jobs:
-  build-test:
+  lint-test-train:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,5 +32,16 @@ jobs:
       - name: Run tests
         run: pytest
 
-      - name: Placeholder quick train
-        run: python -m src.heart.train
+      - name: Quick training with MLflow logging
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: python -m src.heart.train --quick --test-size 0.25
+
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-artifacts
+          path: |
+            artifacts/**
+            mlruns/**
+          if-no-files-found: error
