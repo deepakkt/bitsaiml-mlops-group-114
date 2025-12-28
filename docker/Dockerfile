@@ -11,10 +11,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy source and minimal assets; the trained MLflow model is expected to be mounted at runtime.
+# Copy source and assets; the trained MLflow model is baked into the image (artifacts/model).
 COPY src ./src
 COPY scripts ./scripts
 COPY data/sample ./data/sample
+COPY artifacts/model ./artifacts/model
 
 # Prepare writable dirs for artifacts/data
 RUN mkdir -p artifacts/model artifacts/plots data/raw data/processed

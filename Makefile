@@ -31,9 +31,9 @@ help:
 	@echo "  k8s-up/down    Start or delete Minikube profile"
 	@echo "  k8s-deploy     Deploy API manifests to Minikube"
 	@echo "  k8s-undeploy   Remove API manifests from Minikube"
-	@echo "  monitor-up     Install kube-prometheus-stack (placeholder in Part-1)"
+	@echo "  monitor-up     Install kube-prometheus-stack (placeholder until Part-7)"
 	@echo "  monitor-down   Uninstall monitoring stack"
-	@echo "  verify         One-command end-to-end flow (stubbed in Part-1)"
+	@echo "  verify         One-command end-to-end flow (includes docker + k8s)"
 	@echo "  clean          Remove build artifacts and caches"
 
 setup:
@@ -61,6 +61,10 @@ api:
 	$(UVICORN) src.heart.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 docker-build:
+	@if [ ! -d "$(CURDIR)/artifacts/model" ]; then \
+		echo "Missing artifacts/model. Run 'make train' to export the MLflow model before docker-build."; \
+		exit 1; \
+	fi
 	docker build -t $(IMAGE_NAME) -f docker/Dockerfile .
 
 docker-run:
@@ -86,10 +90,10 @@ k8s-down:
 	bash k8s/cluster_down.sh $(MINIKUBE_PROFILE)
 
 k8s-deploy:
-	bash k8s/deploy.sh
+	bash k8s/deploy.sh $(MINIKUBE_PROFILE)
 
 k8s-undeploy:
-	bash k8s/undeploy.sh
+	bash k8s/undeploy.sh $(MINIKUBE_PROFILE)
 
 monitor-up:
 	bash k8s/monitoring/install.sh

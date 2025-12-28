@@ -1,12 +1,12 @@
-# Heart Disease MLOps (Parts 1-5: Data + EDA + Training/MLflow + FastAPI + Docker)
+# Heart Disease MLOps (Parts 1-6: Data + EDA + Training/MLflow + FastAPI + Docker + Minikube)
 
-This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-5 adds a runnable Docker image that mounts the MLflow-exported model for inference.
+This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow.
 
 ## Prerequisites
 - Python 3.11+ (venv, pip)
 - make
 - Docker (for `docker-build`/`docker-run`)
-- Minikube + kubectl + Helm (for later parts; current scripts are placeholders)
+- Minikube + kubectl + Helm (required for k8s/monitoring steps; monitoring arrives in Part-7)
 - GitHub Actions enabled for CI
 
 ## Quickstart (local)
@@ -44,11 +44,20 @@ make docker-run           # mounts ./artifacts/model into the container
 ./scripts/smoke_test_api.sh
 make docker-stop
 
-# 9) View MLflow UI
+# 9) (Optional) Deploy to local Minikube (clean start)
+make k8s-up               # deletes existing profile 'mlops-assign1' then starts fresh
+make k8s-deploy           # loads heart-api:local image and applies manifests
+kubectl -n default port-forward svc/heart-api 8000:80 &
+curl http://localhost:8000/health
+curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict
+make k8s-undeploy
+make k8s-down
+
+# 10) View MLflow UI
 MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 ```
 
-`make verify` is wired with all required stages but still uses placeholder k8s/monitoring steps until later parts.
+`make verify` runs the full flow (including Minikube deploy/teardown). Monitoring install remains placeholder until Part-7; skip it with `VERIFY_SKIP_MONITORING=1`.
 
 ## Make Targets
 - `setup`: create/reuse `.venv` and install deps
@@ -58,10 +67,11 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - `eda`: generate basic EDA figures to `report/figures/`
 - `train`: train Dummy + LogisticRegression + RandomForest with sklearn pipelines, CV, MLflow logging (`--quick` for CI)
 - `api`: run FastAPI locally on `0.0.0.0:8000`
-- `docker-build` / `docker-run` / `docker-stop`: build and run the API image
+- `docker-build` / `docker-run` / `docker-stop`: build and run the API image (requires `artifacts/model` from training)
 - `smoke-test`: hits `/health` and optionally `/predict` (uses `data/sample/request.json`; set `REQUIRE_MODEL=1` to fail if model is missing)
-- `k8s-*`, `monitor-*`: stubs for Minikube deployment and monitoring
-- `verify`: chained end-to-end flow (placeholder heavy steps)
+- `k8s-*`: Minikube clean start, deploy, and teardown scripts
+- `monitor-*`: monitoring install/uninstall (placeholder until Part-7)
+- `verify`: chained end-to-end flow (includes docker smoke test + k8s deploy)
 - `clean`: remove caches and generated raw/processed data
 
 ## Data & EDA (Part-2)
@@ -98,6 +108,15 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - Stop: `make docker-stop`.
 - Direct curl against the container: `curl http://localhost:8000/health` and `curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict`.
 
+## Kubernetes Deploy (Part-6)
+- Prereqs: `make train` and `make docker-build` (image embeds `artifacts/model`).
+- Clean start: `make k8s-up` (deletes existing `mlops-assign1` profile, starts fresh with metrics-server addon).
+- Deploy: `make k8s-deploy` (loads `heart-api:local` into Minikube, applies manifests, waits for rollout).
+- Port-forward: `kubectl -n default port-forward svc/heart-api 8000:80` then curl health/predict as above.
+- Inspect: `minikube -p mlops-assign1 kubectl -- get pods,svc` to confirm 2 replicas and ClusterIP service.
+- Teardown: `make k8s-undeploy` then `make k8s-down`.
+- ServiceMonitor is included but only applied if the CRD exists (after Prometheus/Grafana install in Part-7).
+
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
 - `scripts/bootstrap_venv.sh` — venv creation/install (skips creation if `.venv` exists)
@@ -110,16 +129,16 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `src/heart/features.py` — preprocessing pipelines (impute/scale/one-hot)
 - `data/sample/sample.csv` — small committed sample for tests
 - `docker/Dockerfile` — FastAPI container definition
-- `k8s/` — manifests and scripts (placeholders until Part-6/7)
+- `k8s/` — cluster scripts and manifests (monitoring install remains placeholder until Part-7)
 - `.github/workflows/ci.yml` — CI pipeline (lint, test, placeholder train)
 - `report/` — report/figures/screenshots placeholders
 
 ## Known Placeholders (to be filled in future parts)
-- Minikube deploy scripts, monitoring install scripts
+- Monitoring install scripts (Prometheus/Grafana) and dashboards
 - Report content and CI artifact uploads
 
 ## Troubleshooting (early bootstrap)
 - Reinstall deps: `rm -rf .venv && ./scripts/bootstrap_venv.sh`
 - Ruff not found: ensure `.venv/bin` is on PATH (`source .venv/bin/activate`)
 - Docker build fails on network: retry after ensuring connectivity to PyPI
-- Minikube not installed: skip `k8s-*`/`monitor-*` until Part-6/7 implementation
+- Minikube issues: run `make k8s-down` then `make k8s-up` for a clean start; ensure the `minikube` binary is on PATH
