@@ -1,12 +1,12 @@
-# Heart Disease MLOps (Parts 1-6: Data + EDA + Training/MLflow + FastAPI + Docker + Minikube)
+# Heart Disease MLOps (Parts 1-7: Data + EDA + Training/MLflow + FastAPI + Docker + Minikube + Monitoring)
 
-This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow.
+This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow; Part-7 completes monitoring.
 
 ## Prerequisites
 - Python 3.11+ (venv, pip)
 - make
 - Docker (for `docker-build`/`docker-run`)
-- Minikube + kubectl + Helm (required for k8s/monitoring steps; monitoring arrives in Part-7)
+- Minikube + kubectl + Helm (required for k8s/monitoring steps)
 - GitHub Actions enabled for CI
 
 ## Quickstart (local)
@@ -53,11 +53,20 @@ curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json ht
 make k8s-undeploy
 make k8s-down
 
-# 10) View MLflow UI
+# 10) (Optional) Install monitoring (Prometheus + Grafana) and verify scraping
+make monitor-up           # installs kube-prometheus-stack in monitoring namespace + applies ServiceMonitor
+kubectl -n default get servicemonitor heart-api
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &
+# Visit http://localhost:9090/targets and search for heart-api; should be UP
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80 &
+# Login admin/prom-operator, import k8s/monitoring/grafana-dashboard.json
+make monitor-down
+
+# 11) View MLflow UI
 MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 ```
 
-`make verify` runs the full flow (including Minikube deploy/teardown). Monitoring install remains placeholder until Part-7; skip it with `VERIFY_SKIP_MONITORING=1`.
+`make verify` runs the full flow (including Minikube deploy/teardown and monitoring install). Skip monitoring with `VERIFY_SKIP_MONITORING=1` if resources are tight.
 
 ## Make Targets
 - `setup`: create/reuse `.venv` and install deps
@@ -70,7 +79,7 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - `docker-build` / `docker-run` / `docker-stop`: build and run the API image (requires `artifacts/model` from training)
 - `smoke-test`: hits `/health` and optionally `/predict` (uses `data/sample/request.json`; set `REQUIRE_MODEL=1` to fail if model is missing)
 - `k8s-*`: Minikube clean start, deploy, and teardown scripts
-- `monitor-*`: monitoring install/uninstall (placeholder until Part-7)
+- `monitor-*`: install/uninstall kube-prometheus-stack (Prometheus + Grafana) and re-apply `ServiceMonitor`
 - `verify`: chained end-to-end flow (includes docker smoke test + k8s deploy)
 - `clean`: remove caches and generated raw/processed data
 
@@ -115,7 +124,14 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - Port-forward: `kubectl -n default port-forward svc/heart-api 8000:80` then curl health/predict as above.
 - Inspect: `minikube -p mlops-assign1 kubectl -- get pods,svc` to confirm 2 replicas and ClusterIP service.
 - Teardown: `make k8s-undeploy` then `make k8s-down`.
-- ServiceMonitor is included but only applied if the CRD exists (after Prometheus/Grafana install in Part-7).
+- ServiceMonitor is included and re-applied automatically when monitoring is installed.
+
+## Monitoring (Part-7)
+- Install stack (requires running Minikube profile): `make monitor-up` (installs `kube-prometheus-stack` into `monitoring`, applies `k8s/manifests/servicemonitor.yaml`).
+- Verify targets: `kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &` → open `http://localhost:9090/targets` and search for `heart-api` (should be UP).
+- Grafana: `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80 &` → login `admin/prom-operator`, import `k8s/monitoring/grafana-dashboard.json` (panels for request rate, p95 latency, error rate, pod CPU/mem).
+- Default credentials are local-only; override with `GRAFANA_ADMIN_PASSWORD` env when running `make monitor-up` if desired.
+- Uninstall: `make monitor-down` (helm uninstall + deletes `monitoring` namespace).
 
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
@@ -129,12 +145,11 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `src/heart/features.py` — preprocessing pipelines (impute/scale/one-hot)
 - `data/sample/sample.csv` — small committed sample for tests
 - `docker/Dockerfile` — FastAPI container definition
-- `k8s/` — cluster scripts and manifests (monitoring install remains placeholder until Part-7)
+- `k8s/` — cluster scripts and manifests (includes ServiceMonitor and monitoring install scripts)
 - `.github/workflows/ci.yml` — CI pipeline (lint, test, placeholder train)
 - `report/` — report/figures/screenshots placeholders
 
 ## Known Placeholders (to be filled in future parts)
-- Monitoring install scripts (Prometheus/Grafana) and dashboards
 - Report content and CI artifact uploads
 
 ## Troubleshooting (early bootstrap)

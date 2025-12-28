@@ -31,7 +31,7 @@ help:
 	@echo "  k8s-up/down    Start or delete Minikube profile"
 	@echo "  k8s-deploy     Deploy API manifests to Minikube"
 	@echo "  k8s-undeploy   Remove API manifests from Minikube"
-	@echo "  monitor-up     Install kube-prometheus-stack (placeholder until Part-7)"
+	@echo "  monitor-up     Install kube-prometheus-stack (Prometheus + Grafana) and apply ServiceMonitor"
 	@echo "  monitor-down   Uninstall monitoring stack"
 	@echo "  verify         One-command end-to-end flow (includes docker + k8s)"
 	@echo "  clean          Remove build artifacts and caches"
@@ -114,10 +114,11 @@ verify:
 	$(MAKE) smoke-test
 	$(MAKE) docker-stop
 	$(MAKE) k8s-up
+	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-up; else echo "Skipping monitoring per VERIFY_SKIP_MONITORING"; fi
 	$(MAKE) k8s-deploy
 	$(MAKE) k8s-undeploy
+	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-down; fi
 	$(MAKE) k8s-down
-	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-up && $(MAKE) monitor-down; else echo "Skipping monitoring per VERIFY_SKIP_MONITORING"; fi
 	@echo "Verify completed."
 
 clean:
