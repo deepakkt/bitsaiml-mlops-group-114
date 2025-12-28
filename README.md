@@ -2,7 +2,7 @@
 
 This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow; Part-7 completes monitoring.
 
-## Prerequisites
+## Pre-requisites
 - Python 3.11+ (venv, pip)
 - make
 - Docker (for `docker-build`/`docker-run`)
