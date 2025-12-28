@@ -64,13 +64,20 @@ docker-build:
 	docker build -t $(IMAGE_NAME) -f docker/Dockerfile .
 
 docker-run:
-	docker run --rm -d --name $(CONTAINER_NAME) -p 8000:8000 -e MODEL_PATH=/app/artifacts/model $(IMAGE_NAME)
+	@if [ ! -d "$(CURDIR)/artifacts/model" ]; then \
+		echo "Missing artifacts/model. Run 'make train' to export the MLflow model before docker-run."; \
+		exit 1; \
+	fi
+	docker run --rm -d --name $(CONTAINER_NAME) -p 8000:8000 \
+		-e MODEL_PATH=/app/artifacts/model \
+		-v $(CURDIR)/artifacts/model:/app/artifacts/model:ro \
+		$(IMAGE_NAME)
 
 docker-stop:
 	-@docker stop $(CONTAINER_NAME) >/dev/null 2>&1 || true
 
 smoke-test:
-	./scripts/smoke_test_api.sh
+	REQUIRE_MODEL=1 ./scripts/smoke_test_api.sh
 
 k8s-up:
 	bash k8s/cluster_up.sh $(MINIKUBE_PROFILE)
@@ -91,7 +98,7 @@ monitor-down:
 	bash k8s/monitoring/uninstall.sh
 
 verify:
-	@echo "Running verify (data/EDA implemented; later parts will implement full flow)..."
+	@echo "Running verify end-to-end (includes docker smoke test)..."
 	$(MAKE) setup
 	$(MAKE) lint
 	$(MAKE) test
@@ -107,7 +114,7 @@ verify:
 	$(MAKE) k8s-undeploy
 	$(MAKE) k8s-down
 	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-up && $(MAKE) monitor-down; else echo "Skipping monitoring per VERIFY_SKIP_MONITORING"; fi
-	@echo "Verify completed (placeholder)."
+	@echo "Verify completed."
 
 clean:
 	rm -rf __pycache__ */__pycache__ .pytest_cache .ruff_cache mlruns artifacts data/processed

@@ -2,7 +2,8 @@
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    MODEL_PATH=/app/artifacts/model
 
 WORKDIR /app
 
@@ -10,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy source and minimal assets
+# Copy source and minimal assets; the trained MLflow model is expected to be mounted at runtime.
 COPY src ./src
 COPY scripts ./scripts
 COPY data/sample ./data/sample

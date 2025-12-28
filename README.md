@@ -1,6 +1,6 @@
-cd d# Heart Disease MLOps (Parts 1-4: Data + EDA + Training/MLflow + FastAPI)
+# Heart Disease MLOps (Parts 1-5: Data + EDA + Training/MLflow + FastAPI + Docker)
 
-This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-4 adds the FastAPI service loading the MLflow-exported model with Prometheus metrics and structured logging.
+This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-5 adds a runnable Docker image that mounts the MLflow-exported model for inference.
 
 ## Prerequisites
 - Python 3.11+ (venv, pip)
@@ -38,7 +38,13 @@ curl http://localhost:8000/health
 curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict
 curl http://localhost:8000/metrics | head -n 5
 
-# 8) View MLflow UI
+# 8) Build and run the Docker image (requires artifacts/model from training)
+make docker-build
+make docker-run           # mounts ./artifacts/model into the container
+./scripts/smoke_test_api.sh
+make docker-stop
+
+# 9) View MLflow UI
 MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 ```
 
@@ -84,6 +90,14 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - Logging: JSON logs with `request_id`, `path`, `status_code`, `model_version`, `run_id`; request ID also returned as `X-Request-ID` header.
 - Smoke test: `./scripts/smoke_test_api.sh` (set `REQUIRE_MODEL=1` to fail if the model is absent; uses `data/sample/request.json`).
 
+## Containerization (Part-5)
+- Prereq: run `make train` so `artifacts/model` exists for mounting.
+- Build: `make docker-build`.
+- Run: `make docker-run` (bind-mounts `$(pwd)/artifacts/model` into `/app/artifacts/model` read-only and sets `MODEL_PATH` accordingly).
+- Smoke test: `./scripts/smoke_test_api.sh` (fails if model missing because `REQUIRE_MODEL=1` in the Make target).
+- Stop: `make docker-stop`.
+- Direct curl against the container: `curl http://localhost:8000/health` and `curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict`.
+
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
 - `scripts/bootstrap_venv.sh` — venv creation/install (skips creation if `.venv` exists)
@@ -101,7 +115,7 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `report/` — report/figures/screenshots placeholders
 
 ## Known Placeholders (to be filled in future parts)
-- Docker smoke tests, Minikube deploy scripts, monitoring install scripts
+- Minikube deploy scripts, monitoring install scripts
 - Report content and CI artifact uploads
 
 ## Troubleshooting (early bootstrap)
