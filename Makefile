@@ -21,7 +21,7 @@ help:
 	@echo "  test           Run pytest suite"
 	@echo "  data           Download/preprocess dataset"
 	@echo "  eda            Generate basic EDA figures to report/figures"
-	@echo "  train          Train models with MLflow logging (placeholder in Part-1)"
+	@echo "  train          Train models with MLflow logging (--quick for CI/fast runs)"
 	@echo "  mlflow-ui      Launch MLflow UI"
 	@echo "  api            Run FastAPI locally with uvicorn"
 	@echo "  docker-build   Build heart-api:local image"

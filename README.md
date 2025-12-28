@@ -1,6 +1,6 @@
-# Heart Disease MLOps (Parts 1-2: Data + EDA)
+# Heart Disease MLOps (Parts 1-3: Data + EDA + Training/MLflow)
 
-This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-2 implements reproducible dataset download/cleaning plus EDA artifact generation; later parts will extend training, serving, and deployment.
+This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-3 now implements full feature pipelines, model training/comparison with MLflow logging, and MLflow-format model export.
 
 ## Prerequisites
 - Python 3.11+ (venv, pip)
@@ -27,16 +27,20 @@ make data
 # 5) (Optional) Generate EDA figures to report/figures
 make eda
 
-# 6) Placeholder train/API steps (full pipeline arrives in later parts)
-make train
+# 6) Train models with MLflow logging (full search; use --quick for faster CI/local)
+make train               # full
+python -m src.heart.train --quick --test-size 0.25  # quick mode
 
-# 7) Run the API locally (serves health + metrics; model loading is optional for now)
+# 7) Run the API locally (serves health + metrics; will load model if artifacts/model exists)
 make api
 # in another terminal
 curl http://localhost:8000/health
+
+# 8) View MLflow UI
+MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 ```
 
-`make verify` is wired with all required stages but currently runs placeholder implementations for data/train/k8s/monitoring; subsequent parts will replace these with full logic.
+`make verify` is wired with all required stages but still uses placeholder k8s/monitoring steps until later parts.
 
 ## Make Targets
 - `setup`: create/reuse `.venv` and install deps
@@ -44,7 +48,7 @@ curl http://localhost:8000/health
 - `test`: pytest suite (uses sample dataset)
 - `data`: download and clean the heart disease dataset (saves raw/processed/sample + metadata)
 - `eda`: generate basic EDA figures to `report/figures/`
-- `train`: placeholder training entrypoint
+- `train`: train Dummy + LogisticRegression + RandomForest with sklearn pipelines, CV, MLflow logging (`--quick` for CI)
 - `api`: run FastAPI locally on `0.0.0.0:8000`
 - `docker-build` / `docker-run` / `docker-stop`: build and run the API image
 - `smoke-test`: curl `/health`
@@ -61,12 +65,25 @@ curl http://localhost:8000/health
 - Optional EDA: `make eda` writes plots to `report/figures/`:
   - `target_balance.png`, `numeric_distributions.png`, `correlation_heatmap.png`, `missingness.png`
 
+## Model Training + MLflow (Part-3)
+- Command: `make train` (full) or `python -m src.heart.train --quick --test-size 0.25`
+- Models compared: DummyClassifier (baseline), LogisticRegression (tuned), RandomForestClassifier (tuned) using sklearn `Pipeline` + `ColumnTransformer`.
+- Data split: stratified train/test with StratifiedKFold CV; metrics: accuracy, precision, recall, ROC-AUC.
+- MLflow:
+  - Tracking URI: `file:./mlruns` (gitignored), experiment: `heart-disease-uci`.
+  - Artifacts: plots to `artifacts/plots/`, model export to `artifacts/model/` (MLflow format with `metadata.json`), summary to `artifacts/training_summary.json`.
+  - View UI: `MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000`.
+
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
 - `scripts/bootstrap_venv.sh` — venv creation/install (skips creation if `.venv` exists)
 - `scripts/download_data.py` — reproducible dataset download/cleaning + metadata logging
 - `src/heart/` — package skeleton (config, data, features, train/evaluate, API)
 - `src/heart/eda.py` — scriptable EDA that saves plots to `report/figures/`
+- `src/heart/train.py` — training CLI with quick/full modes and MLflow export
+- `src/heart/mlflow_utils.py` — MLflow helpers (configure, log, export model)
+- `src/heart/evaluate.py` — metrics + ROC/confusion plotting
+- `src/heart/features.py` — preprocessing pipelines (impute/scale/one-hot)
 - `data/sample/sample.csv` — small committed sample for tests
 - `docker/Dockerfile` — FastAPI container definition
 - `k8s/` — manifests and scripts (placeholders until Part-6/7)
@@ -74,8 +91,7 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `report/` — report/figures/screenshots placeholders
 
 ## Known Placeholders (to be filled in future parts)
-- Feature pipeline + model training with MLflow logging and model export
-- Full FastAPI prediction flow with MLflow-loaded model
+- Full FastAPI prediction flow bound to exported MLflow model
 - Docker smoke tests, Minikube deploy scripts, monitoring install scripts
 - Report content and CI artifact uploads
 
