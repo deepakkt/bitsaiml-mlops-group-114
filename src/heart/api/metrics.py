@@ -22,6 +22,9 @@ ERROR_COUNT = Counter(
     ["endpoint", "method"],
 )
 
+# Endpoints like /metrics can be noisy or recursive; opt-out if needed.
+EXCLUDED_PATH_PREFIXES = {"/metrics"}
+
 
 def record_request(endpoint: str, method: str, status_code: int, elapsed_seconds: float) -> None:
     """Record request count and latency."""
@@ -37,3 +40,8 @@ def record_error(endpoint: str, method: str) -> None:
 def prometheus_response():
     """Return metrics body and content type."""
     return generate_latest(), CONTENT_TYPE_LATEST
+
+
+def should_track_path(path: str) -> bool:
+    """Return True if the given path should be tracked."""
+    return not any(path.startswith(prefix) for prefix in EXCLUDED_PATH_PREFIXES)

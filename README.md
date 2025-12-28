@@ -1,6 +1,6 @@
-# Heart Disease MLOps (Parts 1-3: Data + EDA + Training/MLflow)
+cd d# Heart Disease MLOps (Parts 1-4: Data + EDA + Training/MLflow + FastAPI)
 
-This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-3 now implements full feature pipelines, model training/comparison with MLflow logging, and MLflow-format model export.
+This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-4 adds the FastAPI service loading the MLflow-exported model with Prometheus metrics and structured logging.
 
 ## Prerequisites
 - Python 3.11+ (venv, pip)
@@ -31,10 +31,12 @@ make eda
 make train               # full
 python -m src.heart.train --quick --test-size 0.25  # quick mode
 
-# 7) Run the API locally (serves health + metrics; will load model if artifacts/model exists)
+# 7) Run the API locally (loads MLflow model from artifacts/model)
 make api
 # in another terminal
 curl http://localhost:8000/health
+curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict
+curl http://localhost:8000/metrics | head -n 5
 
 # 8) View MLflow UI
 MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
@@ -51,7 +53,7 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - `train`: train Dummy + LogisticRegression + RandomForest with sklearn pipelines, CV, MLflow logging (`--quick` for CI)
 - `api`: run FastAPI locally on `0.0.0.0:8000`
 - `docker-build` / `docker-run` / `docker-stop`: build and run the API image
-- `smoke-test`: curl `/health`
+- `smoke-test`: hits `/health` and optionally `/predict` (uses `data/sample/request.json`; set `REQUIRE_MODEL=1` to fail if model is missing)
 - `k8s-*`, `monitor-*`: stubs for Minikube deployment and monitoring
 - `verify`: chained end-to-end flow (placeholder heavy steps)
 - `clean`: remove caches and generated raw/processed data
@@ -74,6 +76,14 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
   - Artifacts: plots to `artifacts/plots/`, model export to `artifacts/model/` (MLflow format with `metadata.json`), summary to `artifacts/training_summary.json`.
   - View UI: `MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000`.
 
+## API Serving (Part-4)
+- Run locally: `make api` (override model location with `MODEL_PATH=/path/to/model`).
+- Health: `curl http://localhost:8000/health` → `{"status":"ok","model_loaded":true/false,...}`.
+- Predict (uses MLflow-exported model): `curl -X POST -H "Content-Type: application/json" -d @data/sample/request.json http://localhost:8000/predict` → `{"prediction":0/1,"probability":0.xx,"model_version":"...","run_id":"..."}`.
+- Metrics: `curl http://localhost:8000/metrics | head -n 5` (Prometheus exposition with `heart_api_requests_total`, latency histogram, error counter).
+- Logging: JSON logs with `request_id`, `path`, `status_code`, `model_version`, `run_id`; request ID also returned as `X-Request-ID` header.
+- Smoke test: `./scripts/smoke_test_api.sh` (set `REQUIRE_MODEL=1` to fail if the model is absent; uses `data/sample/request.json`).
+
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
 - `scripts/bootstrap_venv.sh` — venv creation/install (skips creation if `.venv` exists)
@@ -91,7 +101,6 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `report/` — report/figures/screenshots placeholders
 
 ## Known Placeholders (to be filled in future parts)
-- Full FastAPI prediction flow bound to exported MLflow model
 - Docker smoke tests, Minikube deploy scripts, monitoring install scripts
 - Report content and CI artifact uploads
 

@@ -4,17 +4,23 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class HealthResponse(BaseModel):
+class APIModel(BaseModel):
+    """Shared model settings for API schemas."""
+
+    model_config = ConfigDict(protected_namespaces=())
+
+
+class HealthResponse(APIModel):
     status: str = "ok"
     model_loaded: bool
     model_version: Optional[str] = None
     run_id: Optional[str] = None
 
 
-class PredictionRequest(BaseModel):
+class PredictionRequest(APIModel):
     age: float = Field(..., example=54)
     sex: int = Field(..., example=1, description="1=male, 0=female")
     cp: int = Field(..., example=0, description="Chest pain type")
@@ -30,7 +36,7 @@ class PredictionRequest(BaseModel):
     thal: int = Field(..., example=2)
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(APIModel):
     prediction: int
     probability: float
     model_version: Optional[str] = None
