@@ -12,7 +12,7 @@ VERIFY_SKIP_MONITORING ?= 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test data eda train mlflow-ui api docker-build docker-run docker-stop smoke-test k8s-up k8s-down k8s-deploy k8s-undeploy monitor-up monitor-down verify clean
+.PHONY: help setup lint test data eda train mlflow-ui api docker-build docker-run docker-stop smoke-test k8s-up k8s-down k8s-deploy k8s-undeploy k8s-smoke monitor-up monitor-down monitor-check verify clean
 
 help:
 	@echo "Available targets:"
@@ -31,8 +31,10 @@ help:
 	@echo "  k8s-up/down    Start or delete Minikube profile"
 	@echo "  k8s-deploy     Deploy API manifests to Minikube"
 	@echo "  k8s-undeploy   Remove API manifests from Minikube"
+	@echo "  k8s-smoke      Port-forward svc/heart-api from Minikube and run smoke test"
 	@echo "  monitor-up     Install kube-prometheus-stack (Prometheus + Grafana) and apply ServiceMonitor"
 	@echo "  monitor-down   Uninstall monitoring stack"
+	@echo "  monitor-check  Confirm Prometheus is scraping heart-api targets (port-forward + API check)"
 	@echo "  verify         One-command end-to-end flow (includes docker + k8s)"
 	@echo "  clean          Remove build artifacts and caches"
 
@@ -101,6 +103,12 @@ monitor-up:
 monitor-down:
 	bash k8s/monitoring/uninstall.sh
 
+k8s-smoke:
+	bash scripts/k8s_smoke_test.sh
+
+monitor-check:
+	bash scripts/check_prometheus_target.sh
+
 verify:
 	@echo "Running verify end-to-end (includes docker smoke test)..."
 	$(MAKE) setup
@@ -114,8 +122,9 @@ verify:
 	$(MAKE) smoke-test
 	$(MAKE) docker-stop
 	$(MAKE) k8s-up
-	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-up; else echo "Skipping monitoring per VERIFY_SKIP_MONITORING"; fi
 	$(MAKE) k8s-deploy
+	$(MAKE) k8s-smoke
+	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-up; $(MAKE) monitor-check; else echo "Skipping monitoring per VERIFY_SKIP_MONITORING"; fi
 	$(MAKE) k8s-undeploy
 	@if [ "$(VERIFY_SKIP_MONITORING)" -ne "1" ]; then $(MAKE) monitor-down; fi
 	$(MAKE) k8s-down

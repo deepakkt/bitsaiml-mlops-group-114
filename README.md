@@ -1,4 +1,4 @@
-# Heart Disease MLOps (Parts 1-7: Data + EDA + Training/MLflow + FastAPI + Docker + Minikube + Monitoring)
+# Heart Disease MLOps (Parts 1-9: Data + EDA + Training/MLflow + FastAPI + Docker + Minikube + Monitoring + Verify/Report)
 
 This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow; Part-7 completes monitoring.
 
@@ -64,6 +64,10 @@ make monitor-down
 
 # 11) View MLflow UI
 MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
+
+# 12) One-command evaluation (full local run)
+make verify                # see section below for what it does
+VERIFY_SKIP_MONITORING=1 make verify  # optional skip for monitoring if resources are tight
 ```
 
 `make verify` runs the full flow (including Minikube deploy/teardown and monitoring install). Skip monitoring with `VERIFY_SKIP_MONITORING=1` if resources are tight.
@@ -79,8 +83,10 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - `docker-build` / `docker-run` / `docker-stop`: build and run the API image (requires `artifacts/model` from training)
 - `smoke-test`: hits `/health` and optionally `/predict` (uses `data/sample/request.json`; set `REQUIRE_MODEL=1` to fail if model is missing)
 - `k8s-*`: Minikube clean start, deploy, and teardown scripts
+- `k8s-smoke`: port-forward `svc/heart-api` and run the smoke test against the deployed service
 - `monitor-*`: install/uninstall kube-prometheus-stack (Prometheus + Grafana) and re-apply `ServiceMonitor`
-- `verify`: chained end-to-end flow (includes docker smoke test + k8s deploy)
+- `monitor-check`: port-forward Prometheus and confirm the `heart-api` ServiceMonitor target is UP
+- `verify`: chained end-to-end flow (includes docker smoke test + k8s deploy + monitoring scrape check)
 - `clean`: remove caches and generated raw/processed data
 
 ## Data & EDA (Part-2)
@@ -133,6 +139,45 @@ MLFLOW_TRACKING_URI=file:./mlruns .venv/bin/mlflow ui --port 5000
 - Default credentials are local-only; override with `GRAFANA_ADMIN_PASSWORD` env when running `make monitor-up` if desired.
 - Uninstall: `make monitor-down` (helm uninstall + deletes `monitoring` namespace).
 
+## One-command Evaluation (Part-9: `make verify`)
+`make verify` is the evaluator run that stitches everything together. It performs, in order:
+1. `make setup` → venv + deps
+2. `make lint` + `make test`
+3. `make data`
+4. `make train` (full training + MLflow export)
+5. `make docker-build` → `make docker-run` → `make smoke-test` → `make docker-stop`
+6. `make k8s-up` → `make k8s-deploy` → `make k8s-smoke` (port-forward svc/heart-api and hit `/health` + `/predict`)
+7. `make monitor-up` → `make monitor-check` (Prometheus targets API; expects “Prometheus scrape is UP for 'heart-api'”) → `make monitor-down`
+8. `make k8s-undeploy` → `make k8s-down`
+
+Expected success snippets:
+- Smoke test prints the `/health` JSON and a `/predict` response from `data/sample/request.json`.
+- k8s smoke test repeats the same via port-forwarded Service.
+- Monitoring check prints `Prometheus scrape is UP for 'heart-api'`.
+
+Skip monitoring if needed: `VERIFY_SKIP_MONITORING=1 make verify` (still runs docker + k8s smoke tests).
+
+Resource/time notes: allow ~10–15 minutes on a laptop with Docker + Minikube + Helm installed; Minikube profile is always reset for a clean start.
+
+## Report & Evidence Checklist (Part-9)
+- `report/Report.docx`: fill with the sections from `report/report_outline.md` (data/EDA, feature engineering, model metrics table, MLflow screenshot, API/Docker proof, k8s deploy screenshot, Prometheus target and Grafana dashboard screenshots, CI run, architecture diagram).
+- Screenshots to capture (store under `report/screenshots/`):
+  - MLflow UI run page showing metrics/artifacts
+  - CI green run + artifacts panel
+  - Docker/`make verify` console snippets for smoke tests
+  - `kubectl get pods,svc` and `kubectl port-forward` curl outputs
+  - Prometheus targets page with `heart-api` UP
+  - Grafana dashboard panels (request rate, p95 latency, error rate, pod CPU/mem)
+  - Architecture diagram (rendered image from Mermaid is acceptable)
+- Sample request for `/predict`: `data/sample/request.json`.
+
+## Submission Package (Evaluator-facing)
+- Repo URL + commit/tag used.
+- GitHub Actions run link (green) for `.github/workflows/ci.yml`.
+- `report/Report.docx` plus `report/screenshots/` and `report/figures/`.
+- Note if `VERIFY_SKIP_MONITORING=1` was needed (default should run monitoring).
+- Optional short demo video checklist: run `make verify`, show `/health` + `/predict`, show Prometheus targets and Grafana dashboard.
+
 ## Repository Layout
 Key paths (see `AGENTS.md` for the authoritative spec):
 - `scripts/bootstrap_venv.sh` — venv creation/install (skips creation if `.venv` exists)
@@ -148,9 +193,6 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `k8s/` — cluster scripts and manifests (includes ServiceMonitor and monitoring install scripts)
 - `.github/workflows/ci.yml` — CI pipeline (lint, test, placeholder train)
 - `report/` — report/figures/screenshots placeholders
-
-## Known Placeholders (to be filled in future parts)
-- Report content and CI artifact uploads
 
 ## Troubleshooting (early bootstrap)
 - Reinstall deps: `rm -rf .venv && ./scripts/bootstrap_venv.sh`
