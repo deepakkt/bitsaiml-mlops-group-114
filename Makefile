@@ -12,14 +12,15 @@ VERIFY_SKIP_MONITORING ?= 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test data train mlflow-ui api docker-build docker-run docker-stop smoke-test k8s-up k8s-down k8s-deploy k8s-undeploy monitor-up monitor-down verify clean
+.PHONY: help setup lint test data eda train mlflow-ui api docker-build docker-run docker-stop smoke-test k8s-up k8s-down k8s-deploy k8s-undeploy monitor-up monitor-down verify clean
 
 help:
 	@echo "Available targets:"
 	@echo "  setup          Create/reuse venv and install dependencies"
 	@echo "  lint           Run ruff checks"
 	@echo "  test           Run pytest suite"
-	@echo "  data           Download/preprocess dataset (placeholder in Part-1)"
+	@echo "  data           Download/preprocess dataset"
+	@echo "  eda            Generate basic EDA figures to report/figures"
 	@echo "  train          Train models with MLflow logging (placeholder in Part-1)"
 	@echo "  mlflow-ui      Launch MLflow UI"
 	@echo "  api            Run FastAPI locally with uvicorn"
@@ -46,6 +47,9 @@ test:
 
 data:
 	$(PYTHON_BIN) scripts/download_data.py
+
+eda:
+	$(PYTHON_BIN) -m src.heart.eda
 
 train:
 	$(PYTHON_BIN) -m src.heart.train
@@ -87,7 +91,7 @@ monitor-down:
 	bash k8s/monitoring/uninstall.sh
 
 verify:
-	@echo "Running verify (Part-1 bootstrap uses placeholders; later parts will implement full flow)..."
+	@echo "Running verify (data/EDA implemented; later parts will implement full flow)..."
 	$(MAKE) setup
 	$(MAKE) lint
 	$(MAKE) test
@@ -106,5 +110,6 @@ verify:
 	@echo "Verify completed (placeholder)."
 
 clean:
-	rm -rf __pycache__ */__pycache__ .pytest_cache .ruff_cache mlruns artifacts data/raw data/processed
+	rm -rf __pycache__ */__pycache__ .pytest_cache .ruff_cache mlruns artifacts data/processed
+	find data/raw -maxdepth 1 -type f ! -name "metadata.json" -delete 2>/dev/null || true
 	find . -name "*.pyc" -delete

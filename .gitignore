@@ -16,7 +16,8 @@ coverage/
 htmlcov/
 AGENTS.md
 
-data/raw/
+data/raw/*
+!data/raw/metadata.json
 data/processed/
 data/backup/
 mlruns/

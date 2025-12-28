@@ -1,0 +1,13 @@
+{
+  "source": "ucimlrepo id=45 (Heart Disease)",
+  "raw_path": "data/raw/heart.csv",
+  "processed_path": "data/processed/heart_processed.csv",
+  "sample_path": "data/sample/sample.csv",
+  "records_raw": 303,
+  "records_clean": 297,
+  "target_column": "target",
+  "timestamp": "2025-12-28T11:18:50.923323+00:00",
+  "checksum_sha256": "fbd8e872af527dd3544a47b52cb3ce38f2f94b19082a40a1e20904a80d8377d6",
+  "source_url": "https://archive.ics.uci.edu/ml/datasets/Heart+Disease",
+  "notes": "Regenerate by running scripts/download_data.py; raw data is gitignored."
+}
