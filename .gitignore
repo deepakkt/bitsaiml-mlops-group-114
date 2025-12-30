@@ -30,3 +30,4 @@ notebooks/.ipynb_checkpoints/
 .DS_Store
 *.log
 .env
+demo-video/*
