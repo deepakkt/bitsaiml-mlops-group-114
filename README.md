@@ -4,7 +4,6 @@ This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease 
 
 ## MLOPS Group 114 - Group Information and Contributions
 
-
 | **SNo** | **Name**             | **ID**      | **Percentage** |
 | ------: | -------------------- | ----------- | -------------: |
 |       1 | Ravindra Babu Katiki | 2024AB05286 |            100 |
@@ -13,7 +12,13 @@ This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease 
 |       4 | Hemant Dyavarkonda   | 2024AB05109 |            100 |
 |       5 | Ashish Kumar         | 2024AB05110 |            100 |
 
-## Pre-requisites
+
+## Master Documentation
+
+1. [Consolidated final PDF](documentation/MLOPS-G114-Assignment-Master-Submission.pdf)
+2. [Condensed 10-pager document in docx format](documentation/MLOPS-G114-Assignment-Condensed-Document.docx)
+
+## Pre-requisites for experiment
 - Python 3.11+ (venv, pip)
 - make
 - Docker (for `docker-build`/`docker-run`)
@@ -24,7 +29,11 @@ This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease 
 ![](architecture/Architecture.png "Architecture Diagram")
 
 ## Video Overview
-(to be updated)
+
+Full demo video [available here](https://drive.google.com/file/d/1HEArdJE0bNgOBRjnxK520GdxDFBN2u8a/view?usp=sharing)
+(accessible via BITS login)
+
+![](screenshots/900-video-overview.png "Video Overview")
 
 ## Quickstart (local)
 ```bash
@@ -213,7 +222,7 @@ Key paths (see `AGENTS.md` for the authoritative spec):
 - `.github/workflows/ci.yml` — CI pipeline (lint, test, placeholder train)
 - `report/` — report/figures/screenshots placeholders
 
-## Troubleshooting (early bootstrap)
+## Troubleshooting
 - Reinstall deps: `rm -rf .venv && ./scripts/bootstrap_venv.sh`
 - Ruff not found: ensure `.venv/bin` is on PATH (`source .venv/bin/activate`)
 - Docker build fails on network: retry after ensuring connectivity to PyPI
