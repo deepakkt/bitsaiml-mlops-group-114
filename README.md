@@ -2,6 +2,17 @@
 
 This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow; Part-7 completes monitoring.
 
+## MLOPS Group 114 - Group Information and Contributions
+
+
+| **SNo** | **Name**             | **ID**      | **Percentage** |
+| ------: | -------------------- | ----------- | -------------: |
+|       1 | Ravindra Babu Katiki | 2024AB05286 |            100 |
+|       2 | Deepak Kumaran       | 2024AB05107 |            100 |
+|       3 | Degala Venkatesh     | 2023AC05236 |            100 |
+|       4 | Hemant Dyavarkonda   | 2024AB05109 |            100 |
+|       5 | Ashish Kumar         | 2024AB05110 |            100 |
+
 ## Pre-requisites
 - Python 3.11+ (venv, pip)
 - make
@@ -103,6 +114,8 @@ VERIFY_SKIP_MONITORING=1 make verify  # optional skip for monitoring if resource
   - `data/sample/sample.csv` (10–50-row committed sample for tests)
 - Optional EDA: `make eda` writes plots to `report/figures/`:
   - `target_balance.png`, `numeric_distributions.png`, `correlation_heatmap.png`, `missingness.png`
+
+Analysis notebook is [here](notebooks/01_eda_heart_ucicr_enhanced.ipynb)
 
 ## Model Training + MLflow (Part-3)
 - Command: `make train` (full) or `python -m src.heart.train --quick --test-size 0.25`
