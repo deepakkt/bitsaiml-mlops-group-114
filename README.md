@@ -2,6 +2,27 @@
 
 This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease dataset: data acquisition, preprocessing/EDA, model training with MLflow, serving via FastAPI, containerization, Kubernetes on local Minikube, monitoring with Prometheus/Grafana, and CI via GitHub Actions. Part-6 adds Minikube deployment scripts and manifests with a clean start profile workflow; Part-7 completes monitoring.
 
+## Table of Contents
+* [MLOPS Group 114 - Group Information and Contributions](#mlops-group-114---group-information-and-contributions)
+* [Master Documentation](#master-documentation)
+* [Pre-requisites for experiment](#pre-requisites-for-experiment)
+* [Architecture Diagram](#architecture-diagram)
+* [Video Overview](#video-overview)
+* [Quickstart (local)](#quickstart-local)
+* [Make Targets](#make-targets)
+* [Data & EDA (Part-2)](#data--eda-part-2)
+* [Model Training + MLflow (Part-3)](#model-training--mlflow-part-3)
+* [API Serving (Part-4)](#api-serving-part-4)
+* [Containerization (Part-5)](#containerization-part-5)
+* [Kubernetes Deploy (Part-6)](#kubernetes-deploy-part-6)
+* [Monitoring (Part-7)](#monitoring-part-7)
+* [One-command Evaluation (Part-9: make verify)](#one-command-evaluation-part-9-make-verify)
+* [Report & Evidence Checklist (Part-9)](#report--evidence-checklist-part-9)
+* [Submission Package (Evaluator-facing)](#submission-package-evaluator-facing)
+* [Repository Layout](#repository-layout)
+* [Troubleshooting](#troubleshooting)
+
+
 ## MLOPS Group 114 - Group Information and Contributions
 
 | **SNo** | **Name**             | **ID**      | **Percentage** |
@@ -17,6 +38,8 @@ This repository scaffolds an end-to-end MLOps project for the UCI Heart Disease 
 
 1. [Consolidated final PDF](documentation/MLOPS-G114-Assignment-Master-Submission.pdf)
 2. [Condensed 10-pager document in docx format](documentation/MLOPS-G114-Assignment-Condensed-Document.docx)
+
+Screenshots are available in [this folder](screenshots). But they're also present in context in both of the above documents
 
 ## Pre-requisites for experiment
 - Python 3.11+ (venv, pip)
